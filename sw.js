@@ -1,4 +1,4 @@
-const CACHE_NAME = "pauza-v5";
+const CACHE_NAME = "pauza-v6";
 const ASSETS = [
   "./index.html",
   "./style.css",

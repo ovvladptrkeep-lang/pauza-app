@@ -91,14 +91,13 @@
         <div class="block-body" id="day-morning"></div>
       </div>
 
-      <!-- Круг-дыхание -->
-      <div class="breath-section">
-        <div id="breath-circle" class="breath-circle idle" aria-label="Начать дыхание"></div>
-      </div>
 
       <div class="block block-practice">
         <div class="block-label">🎯 Практика дня</div>
         <div class="block-body" id="day-practice"></div>
+        <button id="breath-start-btn" class="btn btn-primary btn-full" style="margin-top:12px">
+          🌀 Начать дыхание 4-4-4-4
+        </button>
       </div>
         <div class="timer-btns">
           <button id="timer-toggle" class="btn btn-small btn-primary">▶ Начать дыхание</button>
@@ -183,5 +182,11 @@
 
 <script src="content.js"></script>
 <script src="app.js"></script>
+
+<!-- Полноэкранный слой для кругов-дыхания -->
+<div id="breath-overlay" class="breath-overlay hidden">
+  <div id="breath-ripple" class="breath-ripple"></div>
+</div>
+
 </body>
 </html>

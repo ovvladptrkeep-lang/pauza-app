@@ -321,6 +321,138 @@ if (BREATH_CIRCLE_EL) {
 }
 
 
+/* ---------- Дыхание кругами на воде 4-4-4-4 (без вибрации) ---------- */
+const BREATH_DUR = 4;
+const OVERLAY_FADE_MS = 300;
+const PHASE_IN = 0, PHASE_HOLD1 = 1, PHASE_OUT = 2, PHASE_HOLD2 = 3;
+
+let breathPhase = PHASE_IN;
+let breathPhaseStart = 0;
+let breathRunning = false;
+let breathRafId = null;
+
+const OVERLAY_EL = document.getElementById("breath-overlay");
+const RIPPLE_EL  = document.getElementById("breath-ripple");
+
+// Подсказка + центральная точка (создаются один раз)
+if (OVERLAY_EL && !document.getElementById("breath-hint")) {
+  const hint = document.createElement("div");
+  hint.id = "breath-hint";
+  hint.className = "breath-hint";
+  hint.textContent = "нажмите, чтобы закрыть";
+  OVERLAY_EL.appendChild(hint);
+
+  const core = document.createElement("div");
+  core.className = "breath-core";
+  OVERLAY_EL.appendChild(core);
+}
+
+// Единственный тактильный сигнал — короткий «тик»
+function tickFeedback() {
+  if (navigator.vibrate) {
+    try { navigator.vibrate(20); } catch (e) {}
+  }
+}
+
+function easeInOut(t) {
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
+function maxRippleScale() {
+  const w = window.innerWidth, h = window.innerHeight;
+  const diag = Math.sqrt(w * w + h * h);
+  return (diag * 1.05) / 200;
+}
+
+function setRipple(t, isInhale) {
+  if (!RIPPLE_EL) return;
+  const maxScale = maxRippleScale();
+  const minScale = 0.1;
+  let scale, opacity, borderW;
+  if (isInhale) {
+    scale = minScale + (maxScale - minScale) * t;
+    opacity = 1 - 0.95 * t;
+    borderW = 6 - 4 * t;
+  } else {
+    scale = maxScale - (maxScale - minScale) * t;
+    opacity = 0.05 + 0.95 * t;
+    borderW = 2 + 4 * t;
+  }
+  RIPPLE_EL.style.transform = "translate(-50%,-50%) scale(" + scale.toFixed(3) + ")";
+  RIPPLE_EL.style.opacity = opacity.toFixed(3);
+  RIPPLE_EL.style.borderWidth = borderW.toFixed(2) + "px";
+}
+
+function startPhase(now) {
+  breathPhaseStart = now;
+  if ((breathPhase === PHASE_HOLD1 || breathPhase === PHASE_HOLD2) && RIPPLE_EL) {
+    RIPPLE_EL.style.opacity = "0";
+  }
+}
+
+function breathTick(now) {
+  if (!breathRunning) return;
+  const elapsed = (now - breathPhaseStart) / 1000;
+  const t = Math.min(elapsed / BREATH_DUR, 1);
+
+  if (breathPhase === PHASE_IN)       setRipple(easeInOut(t), true);
+  else if (breathPhase === PHASE_OUT) setRipple(easeInOut(t), false);
+
+  if (elapsed >= BREATH_DUR) {
+    breathPhase = (breathPhase + 1) % 4;
+    startPhase(now);
+  }
+  breathRafId = requestAnimationFrame(breathTick);
+}
+
+function startBreath() {
+  if (breathRunning) return;
+  breathRunning = true;
+  breathPhase = PHASE_IN;
+
+  if (OVERLAY_EL) {
+    OVERLAY_EL.classList.remove("hidden");
+    OVERLAY_EL.style.opacity = "0";
+    requestAnimationFrame(() => {
+      OVERLAY_EL.style.transition = "opacity " + OVERLAY_FADE_MS + "ms ease";
+      OVERLAY_EL.style.opacity = "1";
+    });
+  }
+
+  tickFeedback();
+  startPhase(performance.now());
+  breathRafId = requestAnimationFrame(breathTick);
+}
+
+function stopBreath() {
+  breathRunning = false;
+  if (breathRafId) cancelAnimationFrame(breathRafId);
+  breathRafId = null;
+
+  tickFeedback();
+
+  if (OVERLAY_EL) {
+    OVERLAY_EL.style.transition = "opacity " + OVERLAY_FADE_MS + "ms ease";
+    OVERLAY_EL.style.opacity = "0";
+    setTimeout(() => {
+      if (!breathRunning) OVERLAY_EL.classList.add("hidden");
+    }, OVERLAY_FADE_MS);
+  }
+}
+
+function resetBreath() { stopBreath(); }
+function resetTimerUI() { resetBreath(); }
+function updateTimerDisplay() {}
+
+if (OVERLAY_EL) OVERLAY_EL.addEventListener("click", () => stopBreath());
+
+const BTN_START = document.getElementById("breath-start-btn");
+if (BTN_START) BTN_START.addEventListener("click", (e) => {
+  e.stopPropagation();
+  startBreath();
+});
+
+
 /* ---------- Календарь ---------- */
 function renderCalendar() {
   const completed = getCompletedCount();
