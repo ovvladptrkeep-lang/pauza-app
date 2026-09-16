@@ -168,8 +168,6 @@ function openDay(num) {
   document.getElementById("save-toast").classList.add("hidden");
 
   resetBreath();
-  const timerWrap = document.getElementById("timer-wrap");
-  timerWrap.classList.remove("hidden");
 
   document.getElementById("day-prev").disabled = day.day <= 1;
   document.getElementById("day-next").disabled = day.day >= TOTAL_DAYS;
@@ -217,29 +215,24 @@ function updateStreak() {
   }
 }
 
-/* ---------- Дыхательный таймер 4-4-4-4 ---------- */
+/* ---------- Дыхательный круг 4-4-4-4 ---------- */
 const BREATH_PHASES = [
-  { name: "Вдох",  dur: 4, from: 0.0, to: 1.0, buzzStart: 15, buzzEnd: 80 },
-  { name: "Держи", dur: 4, from: 1.0, to: 1.0, buzzStart: 80, buzzEnd: 80 },
-  { name: "Выдох", dur: 4, from: 1.0, to: 0.0, buzzStart: 80, buzzEnd: 15 },
-  { name: "Держи", dur: 4, from: 0.0, to: 0.0, buzzStart: 15, buzzEnd: 15 }
+  { name: "in",    dur: 4, from: 0.0, to: 1.0, buzzStart: 15, buzzEnd: 90 },
+  { name: "hold1", dur: 4, from: 1.0, to: 1.0, buzzStart: 90, buzzEnd: 90 },
+  { name: "out",   dur: 4, from: 1.0, to: 0.0, buzzStart: 90, buzzEnd: 15 },
+  { name: "hold2", dur: 4, from: 0.0, to: 0.0, buzzStart: 15, buzzEnd: 15 }
 ];
+
+const BREATH_MIN_SCALE = 1.0;   // базовый размер
+const BREATH_MAX_SCALE = 2.6;   // максимум — растёт заметно
 
 let breathPhaseIdx = 0;
 let breathPhaseStart = 0;
-let breathCycles = 0;
 let breathRunning = false;
 let breathRafId = null;
 let breathLastBuzz = 0;
 
-const BREATH_RING_MIN = 60;
-const BREATH_RING_MAX = 80;
-
-const RING_PULSE_EL   = document.querySelector(".ring-pulse");
-const BREATH_PHASE_EL = document.getElementById("breath-phase");
-const BREATH_COUNT_EL = document.getElementById("breath-count");
-const BREATH_CYCLE_EL = document.getElementById("breath-cycle");
-const BTN_TOGGLE_EL   = document.getElementById("timer-toggle");
+const BREATH_CIRCLE_EL = document.getElementById("breath-circle");
 
 function vibrateBreath(ms) {
   if (navigator.vibrate) {
@@ -251,15 +244,10 @@ function easeInOut(t) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 }
 
-function setRingRadius(scale) {
-  const r = BREATH_RING_MIN + (BREATH_RING_MAX - BREATH_RING_MIN) * scale;
-  if (RING_PULSE_EL) RING_PULSE_EL.setAttribute("r", r.toFixed(1));
-}
-
-function updateBreathUI(phase, remainingInPhase, cycleNum) {
-  if (BREATH_PHASE_EL) BREATH_PHASE_EL.textContent = phase.name;
-  if (BREATH_COUNT_EL) BREATH_COUNT_EL.textContent = Math.max(1, Math.ceil(remainingInPhase));
-  if (BREATH_CYCLE_EL) BREATH_CYCLE_EL.textContent = "цикл " + cycleNum;
+function setCircleScale(scale) {
+  if (!BREATH_CIRCLE_EL) return;
+  const size = BREATH_MIN_SCALE + (BREATH_MAX_SCALE - BREATH_MIN_SCALE) * scale;
+  BREATH_CIRCLE_EL.style.transform = "scale(" + size.toFixed(3) + ")";
 }
 
 function breathTick(now) {
@@ -276,23 +264,20 @@ function breathTick(now) {
     const eased = easeInOut(t);
     scale = phase.from + (phase.to - phase.from) * eased;
   }
-  setRingRadius(scale);
+  setCircleScale(scale);
 
   const buzzNow = phase.buzzStart + (phase.buzzEnd - phase.buzzStart) * t;
-  const interval = Math.max(80, 300 - buzzNow * 2.5);
+  const interval = Math.max(80, 320 - buzzNow * 2.6);
   if (now - breathLastBuzz > interval) {
     vibrateBreath(Math.round(buzzNow));
     breathLastBuzz = now;
   }
 
-  updateBreathUI(phase, phase.dur - elapsed, breathCycles);
-
   if (elapsed >= phase.dur) {
     breathPhaseIdx = (breathPhaseIdx + 1) % BREATH_PHASES.length;
     if (breathPhaseIdx === 0) {
-      breathCycles += 1;
-      vibrateBreath(50);
-      setTimeout(() => vibrateBreath(30), 80);
+      vibrateBreath(60);
+      setTimeout(() => vibrateBreath(35), 90);
     }
     breathPhaseStart = now;
   }
@@ -303,43 +288,36 @@ function breathTick(now) {
 function startBreath() {
   if (breathRunning) return;
   breathRunning = true;
+  breathPhaseIdx = 0;
   breathPhaseStart = performance.now();
   breathLastBuzz = 0;
+  if (BREATH_CIRCLE_EL) {
+    BREATH_CIRCLE_EL.classList.remove("idle");
+    BREATH_CIRCLE_EL.classList.add("active");
+  }
   breathRafId = requestAnimationFrame(breathTick);
-  if (BTN_TOGGLE_EL) BTN_TOGGLE_EL.textContent = "⏸ Пауза";
 }
 
 function stopBreath() {
   breathRunning = false;
   if (breathRafId) cancelAnimationFrame(breathRafId);
   breathRafId = null;
-  if (BTN_TOGGLE_EL) BTN_TOGGLE_EL.textContent = "▶ Продолжить";
+  setCircleScale(0);
+  if (BREATH_CIRCLE_EL) {
+    BREATH_CIRCLE_EL.classList.remove("active");
+    BREATH_CIRCLE_EL.classList.add("idle");
+  }
 }
 
-function resetBreath() {
-  stopBreath();
-  breathPhaseIdx = 0;
-  breathCycles = 0;
-  setRingRadius(0);
-  if (BREATH_PHASE_EL) BREATH_PHASE_EL.textContent = "Готовы?";
-  if (BREATH_COUNT_EL) BREATH_COUNT_EL.textContent = "4";
-  if (BREATH_CYCLE_EL) BREATH_CYCLE_EL.textContent = "цикл 0";
-  if (BTN_TOGGLE_EL) BTN_TOGGLE_EL.textContent = "▶ Начать дыхание";
-}
-
-// Совместимость со старым API
+function resetBreath() { stopBreath(); }
 function resetTimerUI() { resetBreath(); }
 function updateTimerDisplay() {}
 
-if (BTN_TOGGLE_EL) {
-  BTN_TOGGLE_EL.addEventListener("click", () => {
+if (BREATH_CIRCLE_EL) {
+  BREATH_CIRCLE_EL.addEventListener("click", () => {
     if (breathRunning) stopBreath();
     else startBreath();
   });
-}
-const BTN_RESET_EL = document.getElementById("timer-reset");
-if (BTN_RESET_EL) {
-  BTN_RESET_EL.addEventListener("click", resetBreath);
 }
 
 
