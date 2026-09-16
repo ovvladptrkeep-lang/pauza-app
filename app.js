@@ -147,10 +147,6 @@ document.getElementById("btn-open-today").addEventListener("click", () => openDa
 
 /* ---------- Экран дня ---------- */
 let activeDayNum = 1;
-let timerInterval = null;
-let timerRemaining = 0;
-let timerTotal = 0;
-let timerRunning = false;
 
 function openDay(num) {
   activeDayNum = num;
@@ -171,16 +167,9 @@ function openDay(num) {
   document.getElementById("day-note").value = entry ? entry.text : "";
   document.getElementById("save-toast").classList.add("hidden");
 
-  resetTimerUI();
+  resetBreath();
   const timerWrap = document.getElementById("timer-wrap");
-  if (day.timer) {
-    timerWrap.classList.remove("hidden");
-    timerTotal = day.timer;
-    timerRemaining = day.timer;
-    updateTimerDisplay();
-  } else {
-    timerWrap.classList.add("hidden");
-  }
+  timerWrap.classList.remove("hidden");
 
   document.getElementById("day-prev").disabled = day.day <= 1;
   document.getElementById("day-next").disabled = day.day >= TOTAL_DAYS;
@@ -228,46 +217,131 @@ function updateStreak() {
   }
 }
 
-/* ---------- Таймер практики ---------- */
-function updateTimerDisplay() {
-  const m = Math.floor(timerRemaining / 60);
-  const s = timerRemaining % 60;
-  document.getElementById("timer-display").textContent =
-    String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
-}
-function resetTimerUI() {
-  clearInterval(timerInterval);
-  timerRunning = false;
-  document.getElementById("timer-toggle").textContent = "▶ Старт";
-}
-document.getElementById("timer-toggle").addEventListener("click", () => {
-  if (timerRunning) {
-    clearInterval(timerInterval);
-    timerRunning = false;
-    document.getElementById("timer-toggle").textContent = "▶ Продолжить";
-  } else {
-    if (timerRemaining <= 0) { timerRemaining = timerTotal; }
-    timerRunning = true;
-    document.getElementById("timer-toggle").textContent = "⏸ Пауза";
-    timerInterval = setInterval(() => {
-      timerRemaining -= 1;
-      updateTimerDisplay();
-      if (timerRemaining <= 0) {
-        clearInterval(timerInterval);
-        timerRunning = false;
-        document.getElementById("timer-toggle").textContent = "✓ Готово";
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-      }
-    }, 1000);
+/* ---------- Дыхательный таймер 4-4-4-4 ---------- */
+const BREATH_PHASES = [
+  { name: "Вдох",  dur: 4, from: 0.0, to: 1.0, buzzStart: 15, buzzEnd: 80 },
+  { name: "Держи", dur: 4, from: 1.0, to: 1.0, buzzStart: 80, buzzEnd: 80 },
+  { name: "Выдох", dur: 4, from: 1.0, to: 0.0, buzzStart: 80, buzzEnd: 15 },
+  { name: "Держи", dur: 4, from: 0.0, to: 0.0, buzzStart: 15, buzzEnd: 15 }
+];
+
+let breathPhaseIdx = 0;
+let breathPhaseStart = 0;
+let breathCycles = 0;
+let breathRunning = false;
+let breathRafId = null;
+let breathLastBuzz = 0;
+
+const BREATH_RING_MIN = 60;
+const BREATH_RING_MAX = 80;
+
+const RING_PULSE_EL   = document.querySelector(".ring-pulse");
+const BREATH_PHASE_EL = document.getElementById("breath-phase");
+const BREATH_COUNT_EL = document.getElementById("breath-count");
+const BREATH_CYCLE_EL = document.getElementById("breath-cycle");
+const BTN_TOGGLE_EL   = document.getElementById("timer-toggle");
+
+function vibrateBreath(ms) {
+  if (navigator.vibrate) {
+    try { navigator.vibrate(ms); } catch (e) {}
   }
-});
-document.getElementById("timer-reset").addEventListener("click", () => {
-  clearInterval(timerInterval);
-  timerRunning = false;
-  timerRemaining = timerTotal;
-  updateTimerDisplay();
-  document.getElementById("timer-toggle").textContent = "▶ Старт";
-});
+}
+
+function easeInOut(t) {
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
+function setRingRadius(scale) {
+  const r = BREATH_RING_MIN + (BREATH_RING_MAX - BREATH_RING_MIN) * scale;
+  if (RING_PULSE_EL) RING_PULSE_EL.setAttribute("r", r.toFixed(1));
+}
+
+function updateBreathUI(phase, remainingInPhase, cycleNum) {
+  if (BREATH_PHASE_EL) BREATH_PHASE_EL.textContent = phase.name;
+  if (BREATH_COUNT_EL) BREATH_COUNT_EL.textContent = Math.max(1, Math.ceil(remainingInPhase));
+  if (BREATH_CYCLE_EL) BREATH_CYCLE_EL.textContent = "цикл " + cycleNum;
+}
+
+function breathTick(now) {
+  if (!breathRunning) return;
+
+  const phase = BREATH_PHASES[breathPhaseIdx];
+  const elapsed = (now - breathPhaseStart) / 1000;
+  const t = Math.min(elapsed / phase.dur, 1);
+
+  let scale;
+  if (phase.from === phase.to) {
+    scale = phase.from;
+  } else {
+    const eased = easeInOut(t);
+    scale = phase.from + (phase.to - phase.from) * eased;
+  }
+  setRingRadius(scale);
+
+  const buzzNow = phase.buzzStart + (phase.buzzEnd - phase.buzzStart) * t;
+  const interval = Math.max(80, 300 - buzzNow * 2.5);
+  if (now - breathLastBuzz > interval) {
+    vibrateBreath(Math.round(buzzNow));
+    breathLastBuzz = now;
+  }
+
+  updateBreathUI(phase, phase.dur - elapsed, breathCycles);
+
+  if (elapsed >= phase.dur) {
+    breathPhaseIdx = (breathPhaseIdx + 1) % BREATH_PHASES.length;
+    if (breathPhaseIdx === 0) {
+      breathCycles += 1;
+      vibrateBreath(50);
+      setTimeout(() => vibrateBreath(30), 80);
+    }
+    breathPhaseStart = now;
+  }
+
+  breathRafId = requestAnimationFrame(breathTick);
+}
+
+function startBreath() {
+  if (breathRunning) return;
+  breathRunning = true;
+  breathPhaseStart = performance.now();
+  breathLastBuzz = 0;
+  breathRafId = requestAnimationFrame(breathTick);
+  if (BTN_TOGGLE_EL) BTN_TOGGLE_EL.textContent = "⏸ Пауза";
+}
+
+function stopBreath() {
+  breathRunning = false;
+  if (breathRafId) cancelAnimationFrame(breathRafId);
+  breathRafId = null;
+  if (BTN_TOGGLE_EL) BTN_TOGGLE_EL.textContent = "▶ Продолжить";
+}
+
+function resetBreath() {
+  stopBreath();
+  breathPhaseIdx = 0;
+  breathCycles = 0;
+  setRingRadius(0);
+  if (BREATH_PHASE_EL) BREATH_PHASE_EL.textContent = "Готовы?";
+  if (BREATH_COUNT_EL) BREATH_COUNT_EL.textContent = "4";
+  if (BREATH_CYCLE_EL) BREATH_CYCLE_EL.textContent = "цикл 0";
+  if (BTN_TOGGLE_EL) BTN_TOGGLE_EL.textContent = "▶ Начать дыхание";
+}
+
+// Совместимость со старым API
+function resetTimerUI() { resetBreath(); }
+function updateTimerDisplay() {}
+
+if (BTN_TOGGLE_EL) {
+  BTN_TOGGLE_EL.addEventListener("click", () => {
+    if (breathRunning) stopBreath();
+    else startBreath();
+  });
+}
+const BTN_RESET_EL = document.getElementById("timer-reset");
+if (BTN_RESET_EL) {
+  BTN_RESET_EL.addEventListener("click", resetBreath);
+}
+
 
 /* ---------- Календарь ---------- */
 function renderCalendar() {

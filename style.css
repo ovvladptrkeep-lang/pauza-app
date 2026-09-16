@@ -90,10 +90,79 @@ h1{ font-size:32px; margin:0; letter-spacing:1px;}
 .day-nav{ display:flex; gap:10px; margin-top:6px;}
 .day-nav .btn{ flex:1;}
 
-/* ---- Timer ---- */
-.timer-wrap{ margin-top:14px; text-align:center; background:var(--bg-dark); border-radius:12px; padding:14px;}
-.timer-display{ font-size:40px; font-weight:800; letter-spacing:1px; margin-bottom:10px;}
-.timer-btns{ display:flex; gap:10px; justify-content:center;}
+/* ---- Breath ring (timer) ---- */
+.timer-wrap{
+  margin-top:14px;
+  text-align:center;
+  background:var(--bg-dark);
+  border-radius:14px;
+  padding:18px 14px 14px;
+}
+
+.breath-ring{
+  position:relative;
+  width:200px;
+  height:200px;
+  margin:0 auto 14px;
+}
+
+.breath-svg{
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+
+.ring-bg{
+  fill:none;
+  stroke:rgba(64,224,208,0.18);
+  stroke-width:8;
+}
+
+.ring-pulse{
+  fill:none;
+  stroke:var(--primary);
+  stroke-width:8;
+  stroke-linecap:round;
+  transition:stroke 0.3s;
+  filter: drop-shadow(0 0 10px rgba(64,224,208,0.6));
+}
+
+.breath-inner{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
+
+.breath-phase{
+  font-size:14px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  color:var(--primary);
+  font-weight:700;
+  opacity:0.9;
+  min-height:18px;
+}
+
+.breath-count{
+  font-size:52px;
+  font-weight:800;
+  line-height:1;
+  margin-top:4px;
+  color:var(--text-main);
+}
+
+.breath-cycle{
+  font-size:11.5px;
+  color:var(--text-muted);
+  margin-top:6px;
+  letter-spacing:0.5px;
+}
+
+.timer-btns{ display:flex; gap:10px; justify-content:center; }
 
 /* ---- Calendar ---- */
 .cal-scroll{ flex:1; overflow-y:auto; padding:14px 20px;}
