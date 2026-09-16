@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Пауза — 21 день внимания к реакциям</title>
+<meta name="description" content="Дневник практики: 21 день тренировки внимания к реакциям и осознанности, на стыке нейронауки и буддийской психологии.">
+<meta name="theme-color" content="#1A202C">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+  <link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Пауза">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ЭКРАН: онбординг -->
+  <section id="screen-onboarding" class="screen">
+    <div class="onb-wrap">
+      <div class="logo-mark"></div>
+      <h1>Пауза</h1>
+      <p class="tagline">21 день внимания к реакциям и осознанности</p>
+      <p class="onb-desc">Между тем, что случилось, и тем, как вы ответили —
+        есть зазор. Эта программа шаг за шагом тренирует замечать его:
+        через тело, дыхание и точное называние того, что происходит внутри.
+        Опора — современная нейронаука реактивности и практические
+        наставления Будды о «второй стреле».</p>
+      <input id="onb-name" type="text" placeholder="Как вас называть? (необязательно)" maxlength="30">
+      <button id="onb-start" class="btn btn-primary btn-lg">Начать 21 день</button>
+    </div>
+  </section>
+
+  <!-- ЭКРАН: главный -->
+  <section id="screen-home" class="screen hidden">
+    <header class="top-bar">
+      <div class="brand">Пауза</div>
+      <button id="home-menu-btn" class="icon-btn" aria-label="Меню">☰</button>
+    </header>
+
+    <div class="home-scroll">
+      <div class="quote-card" id="quote-card">
+        <p id="quote-text" class="quote-text"></p>
+        <p id="quote-author" class="quote-author"></p>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-pill"><span id="stat-streak">0</span><small>дней подряд</small></div>
+        <div class="stat-pill"><span id="stat-done">0/21</span><small>пройдено</small></div>
+        <div class="stat-pill"><span id="stat-points">0</span><small>баллов практики</small></div>
+      </div>
+
+      <button id="btn-open-today" class="day-cta">
+        <div class="day-cta-label">Открыть день</div>
+        <div class="day-cta-num" id="today-num">1</div>
+        <div class="day-cta-title" id="today-title">Первая и вторая стрела</div>
+      </button>
+
+      <div class="home-links">
+        <button class="link-card" data-goto="calendar">📅 Карта 21 дня</button>
+        <button class="link-card" data-goto="glossary">📖 Словарь понятий</button>
+        <button class="link-card" data-goto="export">⬇️ Экспорт дневника</button>
+      </div>
+    </div>
+
+    <nav class="tabbar">
+      <button class="tab active" data-goto="home">Главная</button>
+      <button class="tab" data-goto="calendar">21 день</button>
+      <button class="tab" data-goto="glossary">Словарь</button>
+    </nav>
+  </section>
+
+  <!-- ЭКРАН: день практики -->
+  <section id="screen-day" class="screen hidden">
+    <header class="top-bar">
+      <button class="icon-btn" data-goto="home" aria-label="Назад">←</button>
+      <div class="brand" id="day-brand">День 1</div>
+      <div style="width:40px"></div>
+    </header>
+    <div class="day-scroll" id="day-scroll">
+      <div class="week-tag" id="day-week"></div>
+      <h2 id="day-title"></h2>
+      <p class="day-subtitle" id="day-subtitle"></p>
+
+      <div class="block block-morning">
+        <div class="block-label">🌅 Утро — намерение</div>
+        <div class="block-body" id="day-morning"></div>
+      </div>
+
+      <div class="block block-practice">
+        <div class="block-label">🎯 Практика дня</div>
+        <div class="block-body" id="day-practice"></div>
+        <div id="timer-wrap" class="timer-wrap hidden">
+          <div class="timer-display" id="timer-display">00:00</div>
+          <div class="timer-btns">
+            <button id="timer-toggle" class="btn btn-small btn-primary">▶ Старт</button>
+            <button id="timer-reset" class="btn btn-small">↺</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="block block-science">
+        <div class="block-label">🧠 Нейронаука</div>
+        <div class="block-body" id="day-science"></div>
+      </div>
+
+      <div class="block block-dharma">
+        <div class="block-label">☸ Опора в практике</div>
+        <div class="block-body" id="day-dharma"></div>
+      </div>
+
+      <div class="block block-reflection">
+        <div class="block-label">✍️ Вечер — дневник</div>
+        <div class="block-body" id="day-reflection-q"></div>
+        <textarea id="day-note" rows="6" placeholder="Пишите здесь свои наблюдения…"></textarea>
+        <button id="day-save" class="btn btn-primary btn-full">Сохранить запись</button>
+        <div id="save-toast" class="save-toast hidden">✓ Сохранено</div>
+      </div>
+
+      <div class="day-nav">
+        <button id="day-prev" class="btn">← Предыдущий</button>
+        <button id="day-next" class="btn">Следующий →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ЭКРАН: календарь / карта 21 дня -->
+  <section id="screen-calendar" class="screen hidden">
+    <header class="top-bar">
+      <button class="icon-btn" data-goto="home" aria-label="Назад">←</button>
+      <div class="brand">Карта 21 дня</div>
+      <div style="width:40px"></div>
+    </header>
+    <div class="cal-scroll">
+      <div class="progress-bar-outer"><div id="progress-bar-inner" class="progress-bar-inner"></div></div>
+      <div id="cal-grid" class="cal-grid"></div>
+    </div>
+    <nav class="tabbar">
+      <button class="tab" data-goto="home">Главная</button>
+      <button class="tab active" data-goto="calendar">21 день</button>
+      <button class="tab" data-goto="glossary">Словарь</button>
+    </nav>
+  </section>
+
+  <!-- ЭКРАН: словарь -->
+  <section id="screen-glossary" class="screen hidden">
+    <header class="top-bar">
+      <button class="icon-btn" data-goto="home" aria-label="Назад">←</button>
+      <div class="brand">Словарь понятий</div>
+      <div style="width:40px"></div>
+    </header>
+    <div class="gloss-scroll" id="gloss-list"></div>
+    <nav class="tabbar">
+      <button class="tab" data-goto="home">Главная</button>
+      <button class="tab" data-goto="calendar">21 день</button>
+      <button class="tab active" data-goto="glossary">Словарь</button>
+    </nav>
+  </section>
+
+  <!-- ЭКРАН: экспорт -->
+  <section id="screen-export" class="screen hidden">
+    <header class="top-bar">
+      <button class="icon-btn" data-goto="home" aria-label="Назад">←</button>
+      <div class="brand">Экспорт дневника</div>
+      <div style="width:40px"></div>
+    </header>
+    <div class="export-wrap">
+      <p>Скачает текстовый файл со всеми вашими записями за 21 день. Файл сохранится в папку «Загрузки» на телефоне.</p>
+      <button id="export-btn" class="btn btn-primary btn-lg">⬇️ Скачать .txt</button>
+      <p class="export-hint">Все ваши записи также хранятся локально на этом устройстве и никуда не отправляются.</p>
+    </div>
+  </section>
+
+</div>
+
+<script src="content.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
